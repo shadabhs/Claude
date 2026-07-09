@@ -1,0 +1,130 @@
+// Prescription app — data model.
+// Portable across PostgreSQL (Supabase/local) and MySQL (Hostinger):
+//  - string cuid() ids (no auto-increment identity differences)
+//  - @db.Text for long free text (valid on both providers)
+//  - Decimal with explicit precision
+//  - String + app-level (zod) validation instead of native enums
+//  - no Postgres-only String[] / Json for core data
+//
+// Multi-tenant ready: every domain row carries doctorId (the tenant/owner).
+// Today there is exactly one Doctor row; adding more is purely additive.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Prisma requires a literal provider (env() is not allowed here).
+  // To deploy on Hostinger MySQL: change this to "mysql", set a mysql://
+  // DATABASE_URL, then regenerate migrations (`npx prisma migrate dev`).
+  // All column types above are chosen to be valid on both engines.
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A doctor is both the auth identity and the tenant root.
+model Doctor {
+  id           String  @id @default(cuid())
+  email        String  @unique // stored lowercased
+  passwordHash String
+  name         String
+  role         String  @default("OWNER") // OWNER | ASSISTANT | ADMIN (future)
+
+  profile       DoctorProfile?
+  patients      Patient[]
+  prescriptions Prescription[]
+  medicines     Medicine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Presentation details used to render the prescription PDF header.
+model DoctorProfile {
+  id             String  @id @default(cuid())
+  doctorId       String  @unique
+  displayName    String // "Dr. Imran"
+  qualifications String // "MBBS, MD (Medicine)"
+  registrationNo String  @default("")
+  clinicName     String  @default("")
+  clinicAddress  String  @default("") @db.Text
+  phone          String  @default("")
+  logoUrl        String? // optional letterhead logo (data URL or hosted)
+  footerNote     String? @db.Text // timings / disclaimer
+
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+}
+
+/// A patient belonging to a doctor.
+model Patient {
+  id       String    @id @default(cuid())
+  doctorId String
+  name     String
+  dob      DateTime?
+  ageYears Int? // fallback when DOB unknown (common in clinics)
+  sex      String    @default("") // "M" | "F" | "O" (app-validated)
+  phone    String? // for WhatsApp
+  notes    String?   @db.Text
+
+  doctor        Doctor         @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  prescriptions Prescription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([doctorId])
+  @@index([doctorId, name])
+  @@index([doctorId, phone])
+}
+
+/// A prescription, tied to a patient. Vitals are embedded columns (bounded set).
+model Prescription {
+  id        String   @id @default(cuid())
+  doctorId  String // denormalized on purpose: single-column tenant filter everywhere
+  patientId String
+  date      DateTime @default(now())
+
+  diagnosis    String?   @db.Text
+  advice       String?   @db.Text
+  followUpDate DateTime?
+
+  // Vitals snapshot
+  bpSystolic    Int?
+  bpDiastolic   Int?
+  weightKg      Decimal? @db.Decimal(5, 2)
+  temperatureC  Decimal? @db.Decimal(4, 1)
+  pulse         Int?
+  spo2          Int?
+  vitalsOther   String?  @db.Text
+
+  doctor    Doctor     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient   Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  medicines Medicine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([doctorId, patientId, date])
+  @@index([patientId])
+}
+
+/// A single medicine line item on a prescription.
+model Medicine {
+  id             String  @id @default(cuid())
+  doctorId       String
+  prescriptionId String
+  name           String
+  dose           String  @default("") // "500 mg"
+  frequency      String  @default("") // "1-0-1"
+  duration       String  @default("") // "5 days"
+  instructions   String? // "after food"
+  sortOrder      Int     @default(0)
+
+  doctor       Doctor       @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  prescription Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+  @@index([doctorId])
+}
