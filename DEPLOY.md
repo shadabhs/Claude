@@ -68,7 +68,8 @@ mysql://DB_USER:DB_PASS@DB_HOST:3306/DB_NAME
    | Name | Value |
    | --- | --- |
    | `DATABASE_URL` | the `mysql://…` string from Part 0 |
-   | `AUTH_SECRET` | the generated secret |
+   | `AUTH_SECRET` | a random secret (`node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`) |
+   | `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` | a base64 32-byte key (`node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`) — **required** on Hostinger (multiple workers) so form submits don't fail with "Failed to find Server Action" |
    | `SEED_DOCTOR_EMAIL` | Dr. Imran's login email |
    | `SEED_DOCTOR_PASSWORD` | Dr. Imran's login password |
    | `NODE_ENV` | `production` |
