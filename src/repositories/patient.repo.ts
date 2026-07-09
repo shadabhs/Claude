@@ -10,8 +10,11 @@ export const patientRepo = {
     const where: Prisma.PatientWhereInput = { doctorId };
     if (search && search.trim()) {
       const q = search.trim();
+      // MySQL string collation is case-insensitive by default, so a plain
+      // `contains` gives case-insensitive name search without a provider-specific
+      // `mode` (which is PostgreSQL-only).
       where.OR = [
-        { name: { contains: q, mode: "insensitive" } },
+        { name: { contains: q } },
         { phone: { contains: q } },
       ];
     }

@@ -14,11 +14,10 @@ generator client {
 }
 
 datasource db {
-  // Prisma requires a literal provider (env() is not allowed here).
-  // To deploy on Hostinger MySQL: change this to "mysql", set a mysql://
-  // DATABASE_URL, then regenerate migrations (`npx prisma migrate dev`).
-  // All column types above are chosen to be valid on both engines.
-  provider = "postgresql"
+  // Configured for Hostinger MySQL. All column types are chosen to be valid on
+  // both MySQL and PostgreSQL, so switching to `provider = "postgresql"` (with a
+  // postgres:// DATABASE_URL) is a one-line change if you host on Supabase.
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 

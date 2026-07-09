@@ -82,26 +82,27 @@ header shows the clinic details.
 
 The database engine is chosen at deploy time; the schema is portable.
 
-### Option A — Hostinger (Business/Cloud plan, MySQL)
+The repo is configured for **MySQL** by default (Hostinger). See **DEPLOY.md** for
+the full step-by-step Hostinger runbook.
 
-1. In `prisma/schema.prisma`, set `provider = "mysql"`.
-2. Create a MySQL database in hPanel; set `DATABASE_URL="mysql://user:pass@host:3306/dbname"`.
-3. In hPanel → **Deploy Web App**, connect this Git repo (Node.js app).
-4. Set env vars: `DATABASE_URL`, `AUTH_SECRET`, `SEED_DOCTOR_*`, `NODE_ENV=production`.
-5. Build command `npm run build`, start command `npm start`.
-6. One-time: run `npm run db:push` and `npm run db:seed` against the MySQL DB.
-7. (Optional) Point a subdomain (e.g. `rx.yourdomain.com`) at the app.
+### Option A — Hostinger (Business/Cloud, MySQL) — default
+
+1. Create a MySQL database in hPanel; set `DATABASE_URL="mysql://user:pass@host:3306/dbname"`.
+2. hPanel → **Deploy Web App**, connect this Git repo (Node.js 20+).
+3. Env vars: `DATABASE_URL`, `AUTH_SECRET`, `SEED_DOCTOR_*`, `NODE_ENV=production`.
+4. Build command `npm run deploy` (builds **and** creates tables + seeds the doctor),
+   start command `npm start`.
+5. (Optional) Point a subdomain (e.g. `rx.yourdomain.com`) at the app.
 
 ### Option B — Vercel + Supabase (PostgreSQL)
 
-1. Keep `provider = "postgresql"`.
+1. In `prisma/schema.prisma`, set `provider = "postgresql"`.
 2. Create a Supabase project; use its Postgres connection string as `DATABASE_URL`.
 3. Import the repo into Vercel; set env vars `DATABASE_URL`, `AUTH_SECRET`, `SEED_DOCTOR_*`.
-4. Deploy. One-time: run `npm run db:push` and `npm run db:seed` (locally against the
-   Supabase URL, or via a Vercel one-off).
+4. Deploy, then run `npm run db:setup` once (locally against the Supabase URL).
 
-> Prisma migrations are dialect-specific, so this project uses `prisma db push`
-> (dialect-agnostic) for schema sync. Commit to one production engine.
+> This project uses `prisma db push` (dialect-agnostic) for schema sync rather than
+> dialect-specific migrations. Commit to one production engine.
 
 ## Scripts
 
