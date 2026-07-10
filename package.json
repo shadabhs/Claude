@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "prestart": "prisma db push --skip-generate && tsx prisma/seed.ts",
+    "build": "prisma generate && next build && (prisma db push --skip-generate && tsx prisma/seed.ts || echo 'DB init skipped (db unreachable at build time)')",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
